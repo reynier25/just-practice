@@ -1,6 +1,14 @@
-let someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"]];
+let someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 22, "red"], [5, 15, "blue"]];
+// [[0, 10, "red"]]
 // [[0, 2, "red"], [2, 12, "blue"]]
 // [[0, 6, "red"], [6, 12, "blue"]]
+// [[0, 6, "red"], [6, 12, "blue"], [20, 30, "magenta"]]
+// [[0, 22, "red"], [22, 30, "magenta"]]
+// expect: [[0, 5, "red"], [5, 15, "blue"], [15, 22, "red"], [22, 30, "magenta"]]
+// actual: [ [ 0, 5, 'red' ], [ 5, 15, 'blue' ], [ 22, 30, 'magenta' ] ]
+
+
+
 /*
 
 */
@@ -22,12 +30,16 @@ function solve(ranges) {
         //splice in RTA, resize other rectangles, merge where needed etc.
         processBound(state, leftBoundStateIdx, leftBoundRTA, colorRTA, "left");
         processBound(state, rightBoundStateIdx, rightBoundRTA, colorRTA, "right");
+
+        // console.log("state after processing", state);
         
-        let removeNRectangles = rightBoundStateIdx - leftBoundStateIdx;
-        console.log("remove n rectangles", removeNRectangles);
-        console.log("lbsidx", leftBoundStateIdx);
+        let removeNRectangles = rightBoundStateIdx - leftBoundStateIdx - 1;
+        if (removeNRectangles < 0) removeNRectangles = 0;
+        // console.log("remove n rectangles", removeNRectangles);
+        // console.log("lbsidx", leftBoundStateIdx);
+        // console.log("rbsidx", rightBoundStateIdx);
         console.log("state before", state);
-        state.splice(leftBoundStateIdx, removeNRectangles, RTA);
+        state.splice(leftBoundStateIdx+1, removeNRectangles, RTA);
         console.log("state after", state);
 
         //final step (?) check rectangles to immediate left and right for mergeability (same color)
@@ -40,18 +52,19 @@ function solve(ranges) {
         if (curIdx + 1 < state.length) {
             rightStateRectangle = state[curIdx + 1]
         }
-        // console.log("should be null", leftStateRectangle);
+        // console.log("should be 0, 2", leftStateRectangle);
         if (leftStateRectangle) {
             let leftStateRectangleColor = leftStateRectangle[2];
             if (leftStateRectangleColor === colorRTA) {
-                let mergedRectangle = [leftStateRectangle[0], rightBoundRTA, colorRTA];
-                state.splice(curIdx, 2, mergedRectangle);
+                let mergedRectangle = [leftStateRectangle[0], state[curIdx][1], colorRTA];
+                state.splice(curIdx - 1, 2, mergedRectangle);
+                curIdx--;
             }
         }
         if (rightStateRectangle) {
             let rightStateRectangleColor = rightStateRectangle[2];
             if (rightStateRectangleColor === colorRTA) {
-                let mergedRectangle = [leftBoundRTA, rightStateRectangle[1], colorRTA];
+                let mergedRectangle = [state[curIdx][0], rightStateRectangle[1], colorRTA];
                 state.splice(curIdx, 2, mergedRectangle);
             }
         }
