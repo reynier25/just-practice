@@ -1,4 +1,4 @@
-let someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 22, "red"], [5, 15, "blue"]];
+let someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 18, "red"], [5, 15, "blue"]];
 // [[0, 10, "red"]]
 // [[0, 2, "red"], [2, 12, "blue"]]
 // [[0, 6, "red"], [6, 12, "blue"]]
@@ -7,7 +7,7 @@ let someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "mage
 // expect: [[0, 5, "red"], [5, 15, "blue"], [15, 22, "red"], [22, 30, "magenta"]]
 // actual: [ [ 0, 5, 'red' ], [ 5, 15, 'blue' ], [ 22, 30, 'magenta' ] ]
 
-
+let ranges2 = [[2, 10, "red"], [4, 8, "blue"]];
 
 /*
 
@@ -28,8 +28,7 @@ function solve(ranges) {
         const [leftBoundStateIdx, rightBoundStateIdx] = [findBounds[0], findBounds[1]];
 
         //splice in RTA, resize other rectangles, merge where needed etc.
-        processBound(state, leftBoundStateIdx, leftBoundRTA, colorRTA, "left");
-        processBound(state, rightBoundStateIdx, rightBoundRTA, colorRTA, "right");
+        processBounds(state, leftBoundStateIdx, rightBoundStateIdx, leftBoundRTA, rightBoundRTA, colorRTA);
 
         // console.log("state after processing", state);
         
@@ -74,40 +73,121 @@ function solve(ranges) {
     return state;
 }
 
-function processBound(state, bound, boundRTA, colorRTA, bfoundRectangleSide) {
+function processBounds(state, leftRectangleStateIdx, rightRectangleStateIdx, leftBoundRTA, rightBoundRTA, colorRTA) {
     // console.log("the bound", bound);
-    let bfoundRectangle = state[bound];
-    let bfoundRectangleLeftBound = bfoundRectangle[0];
-    let bfoundRectangleRightBound = bfoundRectangle[1];
-    let bfoundRectangleColor = bfoundRectangle[2];
+    let leftRectangle = state[leftRectangleStateIdx];
+    let leftRectangleLeftBound = leftRectangle[0];
+    let leftRectangleRightBound = leftRectangle[1];
+    let leftRectangleColor = leftRectangle[2];
 
-    if (bfoundRectangleColor !== colorRTA) {
-        if (boundRTA === bfoundRectangleLeftBound || boundRTA === bfoundRectangleRightBound) {
-            return;
-        } else if (boundRTA > bfoundRectangleLeftBound && boundRTA < bfoundRectangleRightBound) {
-            if (bfoundRectangleSide === "left") {
-                bfoundRectangle[1] = boundRTA;
-            } else {
-                bfoundRectangle[0] = boundRTA;
-            }
-            return;
-        } else {
-            return;
+    let rightRectangle = state[rightRectangleStateIdx];
+    let rightRectangleLeftBound = rightRectangle[0];
+    let rightRectangleRightBound = rightRectangle[1];
+    let rightRectangleColor = rightRectangle[2];
+
+    let leftContained = leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound;
+    let rightContained = rightBoundRTA > rightRectangleLeftBound && rightBoundRTA < rightRectangleRightBound;
+    let leftOverlapsLeft = leftBoundRTA === leftRectangleLeftBound;
+    let leftOverlapsRight = leftBoundRTA === leftRectangleRightBound;
+    let rightOverlapsLeft = rightBoundRTA === rightRectangleLeftBound;
+    let rightOverlapsRight = rightBoundRTA === rightRectangleRightBound;
+    
+    let threeSameColor = leftRectangleColor && rightRectangleColor && colorRTA;
+    let inSameRectangle = leftRectangleStateIdx === rightRectangleStateIdx;
+
+    if (inSameRectangle && leftContained && rightContained && threeSameColor) {
+        let newLeftRectangle = [leftRectangleLeftBound, leftBoundRTA, colorRTA];
+        let centerRectangle = [leftBoundRTA, rightBoundRTA, colorRTA];
+        let newRightRectangle = [rightBoundRTA, rightRectangleRightBound, colorRTA];
+        state.splice(leftRectangleStateIdx, 1, centerRectangle);
+        state.splice(leftRectangleStateIdx, 0, newLeftRectangle);
+        state.splice(leftRectangleStateIdx + 1, 0, newRightRectangle);
+        return;
+    } 
+
+    //set up precise splice index and count
+    let spliceStartIdx;
+    let spliceEndIdx;
+    let value;
+    let rectanglesToSpliceOut = rightRectangleStateIdx - leftRectangleStateIdx - 1;
+    //cases:
+    //leftBoundRTA === leftRectangleLeftBound: startIdx is leftRectangleStateIdx, value is [leftBoundRTA, rightBoundRTA, colorRTA]
+    //leftBoundRTA === leftRectangleRightBound: startIdx is leftRectangleStateIdx+1
+    //rightBoundRTA === rightRectangleRightBound: endIdx is rightRectangleStateIdx
+    //rightBoundRTA === rightRectangleLeftBound: endIdx is rightRectangleStateIdx-1
+    //handle endIdx = -1 edge case: unshift into state
+    //handle startIdx = state.length: push into state
+    //leftBoundRTA > leftRectangleLeftBound (in between): startIdx is leftRectangleStateIdx+1
+    //leftBoundRTA < leftRectangleLeftBound (to the left): startIdx is leftRectangleStateIdx
+    //rightBoundRTA < rightRectangleLeftBound: endIdx is rightRectangleStateIdx
+    //rightBoundRTA > rightRectangleLeftBound: endIdx is rightRectangleStateIdx+1
+
+    
+
+    //left
+    if (leftRectangleColor !== colorRTA) {
+        if (leftBoundRTA === leftRectangleLeftBound) {
+            //max rectangles we could add: 1
+            //min: delete many
+
+        } else if (leftBoundRTA === leftRectangleRightBound) {
+            //max: 1
+            //min: delete many
+        } else if (leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound) {
+            // leftContained = true;
+            //max: 2
+            //min: delete many
+        } else if (leftBoundRTA < leftRectangleLeftBound) {
+            //max: 1
+            //min: delete many
+        } else if (leftBoundRTA > leftRectangleRightBound) {
+            //max: 1
+            //min: delete many
         }
     } else {
-        if (boundRTA === bfoundRectangleLeftBound || boundRTA === bfoundRectangleRightBound) {
-            return;
-        } else if (boundRTA > bfoundRectangleLeftBound && boundRTA < bfoundRectangleRightBound) {
-            return;
-        } else {
-            if (bfoundRectangleSide === "left") {
-                bfoundRectangle[0] = boundRTA;
-            } else {
-                bfoundRectangle[1] = boundRTA;
-            }
-            return;
+        if (leftBoundRTA === leftRectangleLeftBound) {
+
+        } else if (leftBoundRTA === leftRectangleRightBound) {
+
+        } else if (leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound) {
+            leftContained = true;
+
+        } else if (leftBoundRTA < leftRectangleLeftBound) {
+
+        } else if (leftBoundRTA > leftRectangleRightBound) {
+            
         }
     }
+
+    //right
+    if (rightRectangleColor !== colorRTA) {
+        if (rightBoundRTA === rightRectangleLeftBound) {
+
+        } else if (rightBoundRTA === rightRectangleRightBound) {
+
+        } else if (rightBoundRTA > rightRectangleLeftBound && rightBoundRTA < rightRectangleRightBound) {
+            rightContained = true;
+
+        } else if (rightBoundRTA < rightRectangleLeftBound) {
+
+        } else if (rightBoundRTA > rightRectangleRightBound) {
+
+        }
+    } else {
+        if (rightBoundRTA === rightRectangleLeftBound) {
+
+        } else if (rightBoundRTA === rightRectangleRightBound) {
+
+        } else if (rightBoundRTA > rightRectangleLeftBound && rightBoundRTA < rightRectangleRightBound) {
+            rightContained = true;
+
+        } else if (rightBoundRTA < rightRectangleLeftBound) {
+
+        } else if (rightBoundRTA > rightRectangleRightBound) {
+            
+        }
+    }
+
 }
 
 function bsearch(state, leftTarget, rightTarget) {
@@ -144,4 +224,4 @@ function bsearchTarget(state, target) {
 
 
 
-console.log(solve(someRanges));
+console.log(solve(ranges2));
