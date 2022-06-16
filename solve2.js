@@ -1,13 +1,17 @@
-let someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 22, "red"], [5, 15, "blue"]];
-let someRanges2 = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 18, "red"], [5, 15, "blue"]];
-let someRanges3 = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 18, "red"], [5, 15, "blue"], [40, 45, "teal"], [33, 36, "black"]];
+const someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 22, "red"], [5, 15, "blue"]];
+const someRanges2 = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 18, "red"], [5, 15, "blue"]];
+const someRanges3 = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 18, "red"], [5, 15, "blue"], [40, 45, "teal"], [33, 36, "black"]];
+const someRanges4 = [[5, 8, "red"], [2, 4, "blue"], [1, 6, "black"]];
 
 // some test cases, all pass:
 console.log(solve(someRanges));
-// console.log(solve(someRanges2));
-// console.log(solve(someRanges3));
+console.log(solve(someRanges2));
+console.log(solve(someRanges3));
+console.log(solve(someRanges4));
 
-// the console.log on line 75 prints the state after each loop through the testcase array, to show how the state mutates as each rectangle is added.
+
+// the console.log on line 78 prints the state after each loop through the testcase array, to show how the state mutates as each rectangle is added.
+
 // someRanges
 // [[0, 10, "red"]]                                         process [2, 12, "blue"]
 // [[0, 2, "red"], [2, 12, "blue"]]                         process [1, 6, "red"]
@@ -38,7 +42,7 @@ function solve(ranges) {
     const state = [ranges[0]];
 
     for (let i = 1; i < ranges.length; i++) {
-        let RTA = ranges[i];            // RTA = "rectangle to add"
+        const RTA = ranges[i];            // RTA = "rectangle to add"
         const leftBoundRTA = RTA[0];
         const rightBoundRTA = RTA[1];
         const colorRTA = RTA[2];
@@ -53,55 +57,54 @@ function solve(ranges) {
         // console.log("immediately after processBounds", state);
 
         //final step (?) check rectangles to immediate left and right for mergeability (same color)
-        // let leftStateRectangle = null;
-        let leftStateRectangle = idx - 1 >= 0 ? state[idx - 1] : null;
-        let rightStateRectangle = idx + 1 < state.length ? state[idx + 1] : null;
+        const leftStateRectangle = idx - 1 >= 0 ? state[idx - 1] : null;
+        const rightStateRectangle = idx + 1 < state.length ? state[idx + 1] : null;
 
         if (leftStateRectangle) {
-            let leftStateRectangleColor = leftStateRectangle[2];
+            const leftStateRectangleColor = leftStateRectangle[2];
             if (leftStateRectangleColor === colorRTA) {
-                let mergedRectangle = [leftStateRectangle[0], state[idx][1], colorRTA];
+                const mergedRectangle = [leftStateRectangle[0], state[idx][1], colorRTA];
                 state.splice(idx - 1, 2, mergedRectangle);
                 idx--;
             }
         }
         if (rightStateRectangle) {
-            let rightStateRectangleColor = rightStateRectangle[2];
+            const rightStateRectangleColor = rightStateRectangle[2];
             if (rightStateRectangleColor === colorRTA) {
-                let mergedRectangle = [state[idx][0], rightStateRectangle[1], colorRTA];
+                const mergedRectangle = [state[idx][0], rightStateRectangle[1], colorRTA];
                 state.splice(idx, 2, mergedRectangle);
             }
         }
-        console.log("state after loop:", state);
+        // console.log("state after loop:", state);
     }
 
     return state;
 }
 
 function processBounds(state, leftRectangleStateIdx, rightRectangleStateIdx, leftBoundRTA, rightBoundRTA, colorRTA) {
-    let leftRectangle = state[leftRectangleStateIdx];
-    let leftRectangleLeftBound = leftRectangle[0];
-    let leftRectangleRightBound = leftRectangle[1];
-    let leftRectangleColor = leftRectangle[2];
+    const leftRectangle = state[leftRectangleStateIdx];
+    const leftRectangleLeftBound = leftRectangle[0];
+    const leftRectangleRightBound = leftRectangle[1];
+    const leftRectangleColor = leftRectangle[2];
 
-    let rightRectangle = state[rightRectangleStateIdx];
-    let rightRectangleLeftBound = rightRectangle[0];
-    let rightRectangleRightBound = rightRectangle[1];
-    let rightRectangleColor = rightRectangle[2];
+    const rightRectangle = state[rightRectangleStateIdx];
+    const rightRectangleLeftBound = rightRectangle[0];
+    const rightRectangleRightBound = rightRectangle[1];
+    const rightRectangleColor = rightRectangle[2];
 
-    let leftContained = leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound;
-    let rightContained = rightBoundRTA > rightRectangleLeftBound && rightBoundRTA < rightRectangleRightBound;
+    const leftContained = leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound;
+    const rightContained = rightBoundRTA > rightRectangleLeftBound && rightBoundRTA < rightRectangleRightBound;
     
-    let threeSameColor = leftRectangleColor && rightRectangleColor && colorRTA;
-    let inSameRectangle = leftRectangleStateIdx === rightRectangleStateIdx;
+    const threeSameColor = leftRectangleColor && rightRectangleColor && colorRTA;
+    const inSameRectangle = leftRectangleStateIdx === rightRectangleStateIdx;
 
     // this is for when a rectangle is added and is enveloped by a rectangle (different color of course) and total rectangle count increments by 2
     // handled this as a special case, can maybe try to refactor this away
     if (inSameRectangle && leftContained && rightContained && threeSameColor) {
         // console.log("in here");
-        let newLeftRectangle = [leftRectangleLeftBound, leftBoundRTA, leftRectangleColor];
-        let centerRectangle = [leftBoundRTA, rightBoundRTA, colorRTA];
-        let newRightRectangle = [rightBoundRTA, rightRectangleRightBound, rightRectangleColor];
+        const newLeftRectangle = [leftRectangleLeftBound, leftBoundRTA, leftRectangleColor];
+        const centerRectangle = [leftBoundRTA, rightBoundRTA, colorRTA];
+        const newRightRectangle = [rightBoundRTA, rightRectangleRightBound, rightRectangleColor];
         // console.log("init state", state);
         state.splice(leftRectangleStateIdx, 1, centerRectangle);
         state.splice(leftRectangleStateIdx, 0, newLeftRectangle);
@@ -113,7 +116,7 @@ function processBounds(state, leftRectangleStateIdx, rightRectangleStateIdx, lef
     //set up for precise splice index and count
     let spliceStartIdx;
     let spliceEndIdx;
-    let value = [leftBoundRTA, rightBoundRTA, colorRTA];
+    const value = [leftBoundRTA, rightBoundRTA, colorRTA];
 
     //cases:
     //leftBoundRTA === leftRectangleLeftBound: startIdx is leftRectangleStateIdx
@@ -173,7 +176,7 @@ function processBounds(state, leftRectangleStateIdx, rightRectangleStateIdx, lef
 }
 
 function bsearch(state, leftTarget, rightTarget) {
-    let bounds = [];
+    const bounds = [];
     bounds.push(bsearchTarget(state, leftTarget));
     bounds.push(bsearchTarget(state, rightTarget));
     return bounds;
@@ -184,9 +187,9 @@ function bsearchTarget(state, target) {
     let rightPointer = state.length - 1;
     let searchIdx = Math.floor((leftPointer+rightPointer) / 2);
     while (leftPointer <= rightPointer) {
-        let rectangle = state[searchIdx];
-        let leftBoundRectangle = rectangle[0];
-        let rightBoundRectangle = rectangle[1];
+        const rectangle = state[searchIdx];
+        const leftBoundRectangle = rectangle[0];
+        const rightBoundRectangle = rectangle[1];
 
         if (leftBoundRectangle <= target && rightBoundRectangle >= target) {
             return searchIdx;
