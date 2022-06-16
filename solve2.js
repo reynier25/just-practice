@@ -1,13 +1,34 @@
-let someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 18, "red"], [5, 15, "blue"]];
-// [[0, 10, "red"]]
-// [[0, 2, "red"], [2, 12, "blue"]]
-// [[0, 6, "red"], [6, 12, "blue"]]
-// [[0, 6, "red"], [6, 12, "blue"], [20, 30, "magenta"]]
-// [[0, 22, "red"], [22, 30, "magenta"]]
-// expect: [[0, 5, "red"], [5, 15, "blue"], [15, 22, "red"], [22, 30, "magenta"]]
-// actual: [ [ 0, 5, 'red' ], [ 5, 15, 'blue' ], [ 22, 30, 'magenta' ] ]
+let someRanges = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 22, "red"], [5, 15, "blue"]];
+let someRanges2 = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 18, "red"], [5, 15, "blue"]];
+let someRanges3 = [[0, 10, "red"], [2, 12, "blue"], [1, 6, "red"], [20, 30, "magenta"], [3, 18, "red"], [5, 15, "blue"], [40, 45, "teal"], [33, 36, "black"]];
 
-let ranges2 = [[2, 10, "red"], [4, 8, "blue"]];
+// some test cases, all pass:
+console.log(solve(someRanges));
+// console.log(solve(someRanges2));
+// console.log(solve(someRanges3));
+
+// the console.log on line 75 prints the state after each loop through the testcase array, to show how the state mutates as each rectangle is added.
+// someRanges
+// [[0, 10, "red"]]                                         process [2, 12, "blue"]
+// [[0, 2, "red"], [2, 12, "blue"]]                         process [1, 6, "red"]
+// [[0, 6, "red"], [6, 12, "blue"]]                         process [20, 30, "magenta"]
+// [[0, 6, "red"], [6, 12, "blue"], [20, 30, "magenta"]]    process [3, 22, "red"]
+// [[0, 22, "red"], [22, 30, "magenta"]]                    process [5, 15, "blue"]
+// expect: [[0, 5, "red"], [5, 15, "blue"], [15, 22, "red"], [22, 30, "magenta"]]
+
+//someRanges2
+// [[0, 10, "red"]]                                         process [2, 12, "blue"]
+// [[0, 2, "red"], [2, 12, "blue"]]                         process [1, 6, "red"]
+// [[0, 6, "red"], [6, 12, "blue"]]                         process [20, 30, "magenta"]
+// [[0, 6, "red"], [6, 12, "blue"], [20, 30, "magenta"]]    process [3, 18, "red"]
+// [[0, 18, "red"], [20, 30, "magenta"]]                    process [5, 15, "blue"]
+// expect: [[0, 5, "red"], [5, 15, "blue"], [15, 18, "red"], [20, 30, "magenta"]]
+
+//someRanges3
+//same as someRanges3, but continue:
+// [[0, 5, "red"], [5, 15, "blue"], [15, 18, "red"], [20, 30, "magenta"]]                       process [40, 45, "teal"]
+// [[0, 5, "red"], [5, 15, "blue"], [15, 18, "red"], [20, 30, "magenta"], [40, 45, "teal"]]     process [33, 36, "black"]
+// expect: [[0, 5, "red"], [5, 15, "blue"], [15, 18, "red"], [20, 30, "magenta"], [33, 36, "black"], [40, 45, "teal"]]
 
 /*
 
@@ -22,59 +43,42 @@ function solve(ranges) {
         const rightBoundRTA = RTA[1];
         const colorRTA = RTA[2];
         
-        // let leftSpliceIdx = null;
-        // let rightSpliceIdx = null;
         const findBounds = bsearch(state, leftBoundRTA, rightBoundRTA);
         const [leftBoundStateIdx, rightBoundStateIdx] = [findBounds[0], findBounds[1]];
 
-        //splice in RTA, resize other rectangles, merge where needed etc.
-        processBounds(state, leftBoundStateIdx, rightBoundStateIdx, leftBoundRTA, rightBoundRTA, colorRTA);
-
-        // console.log("state after processing", state);
-        
-        let removeNRectangles = rightBoundStateIdx - leftBoundStateIdx - 1;
-        if (removeNRectangles < 0) removeNRectangles = 0;
-        // console.log("remove n rectangles", removeNRectangles);
-        // console.log("lbsidx", leftBoundStateIdx);
-        // console.log("rbsidx", rightBoundStateIdx);
-        console.log("state before", state);
-        state.splice(leftBoundStateIdx+1, removeNRectangles, RTA);
-        console.log("state after", state);
+        // variable armageddon
+        let idx = processBounds(state, leftBoundStateIdx, rightBoundStateIdx, leftBoundRTA, rightBoundRTA, colorRTA);
+        // processBounds returns the index of the rectangle we added to state. we use this index below to check either side for mergeable rectangles.
+        // only the immediate left and right rectangles need to be checked.
+        // console.log("immediately after processBounds", state);
 
         //final step (?) check rectangles to immediate left and right for mergeability (same color)
-        let leftStateRectangle = null;
-        let rightStateRectangle = null;
-        let curIdx = leftBoundStateIdx + 1;
-        if (curIdx - 1 >= 0) {
-            leftStateRectangle = state[curIdx - 1];
-        }
-        if (curIdx + 1 < state.length) {
-            rightStateRectangle = state[curIdx + 1]
-        }
-        // console.log("should be 0, 2", leftStateRectangle);
+        // let leftStateRectangle = null;
+        let leftStateRectangle = idx - 1 >= 0 ? state[idx - 1] : null;
+        let rightStateRectangle = idx + 1 < state.length ? state[idx + 1] : null;
+
         if (leftStateRectangle) {
             let leftStateRectangleColor = leftStateRectangle[2];
             if (leftStateRectangleColor === colorRTA) {
-                let mergedRectangle = [leftStateRectangle[0], state[curIdx][1], colorRTA];
-                state.splice(curIdx - 1, 2, mergedRectangle);
-                curIdx--;
+                let mergedRectangle = [leftStateRectangle[0], state[idx][1], colorRTA];
+                state.splice(idx - 1, 2, mergedRectangle);
+                idx--;
             }
         }
         if (rightStateRectangle) {
             let rightStateRectangleColor = rightStateRectangle[2];
             if (rightStateRectangleColor === colorRTA) {
-                let mergedRectangle = [state[curIdx][0], rightStateRectangle[1], colorRTA];
-                state.splice(curIdx, 2, mergedRectangle);
+                let mergedRectangle = [state[idx][0], rightStateRectangle[1], colorRTA];
+                state.splice(idx, 2, mergedRectangle);
             }
         }
-        console.log("state after loop", state);
+        console.log("state after loop:", state);
     }
 
     return state;
 }
 
 function processBounds(state, leftRectangleStateIdx, rightRectangleStateIdx, leftBoundRTA, rightBoundRTA, colorRTA) {
-    // console.log("the bound", bound);
     let leftRectangle = state[leftRectangleStateIdx];
     let leftRectangleLeftBound = leftRectangle[0];
     let leftRectangleRightBound = leftRectangle[1];
@@ -87,107 +91,85 @@ function processBounds(state, leftRectangleStateIdx, rightRectangleStateIdx, lef
 
     let leftContained = leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound;
     let rightContained = rightBoundRTA > rightRectangleLeftBound && rightBoundRTA < rightRectangleRightBound;
-    let leftOverlapsLeft = leftBoundRTA === leftRectangleLeftBound;
-    let leftOverlapsRight = leftBoundRTA === leftRectangleRightBound;
-    let rightOverlapsLeft = rightBoundRTA === rightRectangleLeftBound;
-    let rightOverlapsRight = rightBoundRTA === rightRectangleRightBound;
     
     let threeSameColor = leftRectangleColor && rightRectangleColor && colorRTA;
     let inSameRectangle = leftRectangleStateIdx === rightRectangleStateIdx;
 
+    // this is for when a rectangle is added and is enveloped by a rectangle (different color of course) and total rectangle count increments by 2
+    // handled this as a special case, can maybe try to refactor this away
     if (inSameRectangle && leftContained && rightContained && threeSameColor) {
-        let newLeftRectangle = [leftRectangleLeftBound, leftBoundRTA, colorRTA];
+        // console.log("in here");
+        let newLeftRectangle = [leftRectangleLeftBound, leftBoundRTA, leftRectangleColor];
         let centerRectangle = [leftBoundRTA, rightBoundRTA, colorRTA];
-        let newRightRectangle = [rightBoundRTA, rightRectangleRightBound, colorRTA];
+        let newRightRectangle = [rightBoundRTA, rightRectangleRightBound, rightRectangleColor];
+        // console.log("init state", state);
         state.splice(leftRectangleStateIdx, 1, centerRectangle);
         state.splice(leftRectangleStateIdx, 0, newLeftRectangle);
-        state.splice(leftRectangleStateIdx + 1, 0, newRightRectangle);
-        return;
+        state.splice(leftRectangleStateIdx + 2, 0, newRightRectangle);
+        // console.log("result state", state);
+        return leftRectangleStateIdx+1;
     } 
 
-    //set up precise splice index and count
+    //set up for precise splice index and count
     let spliceStartIdx;
     let spliceEndIdx;
-    let value;
-    let rectanglesToSpliceOut = rightRectangleStateIdx - leftRectangleStateIdx - 1;
+    let value = [leftBoundRTA, rightBoundRTA, colorRTA];
+
     //cases:
-    //leftBoundRTA === leftRectangleLeftBound: startIdx is leftRectangleStateIdx, value is [leftBoundRTA, rightBoundRTA, colorRTA]
+    //leftBoundRTA === leftRectangleLeftBound: startIdx is leftRectangleStateIdx
     //leftBoundRTA === leftRectangleRightBound: startIdx is leftRectangleStateIdx+1
     //rightBoundRTA === rightRectangleRightBound: endIdx is rightRectangleStateIdx
     //rightBoundRTA === rightRectangleLeftBound: endIdx is rightRectangleStateIdx-1
     //handle endIdx = -1 edge case: unshift into state
     //handle startIdx = state.length: push into state
-    //leftBoundRTA > leftRectangleLeftBound (in between): startIdx is leftRectangleStateIdx+1
+    //leftBoundRTA > leftRectangleLeftBound && < leftRectangleRightBound (in between): startIdx is leftRectangleStateIdx+1
     //leftBoundRTA < leftRectangleLeftBound (to the left): startIdx is leftRectangleStateIdx
-    //rightBoundRTA < rightRectangleLeftBound: endIdx is rightRectangleStateIdx
-    //rightBoundRTA > rightRectangleLeftBound: endIdx is rightRectangleStateIdx+1
+    //leftBoundRTA > leftRectangleLeftBound (to the right): startIdx is leftRectangleStateIdx+1
+    //rightBoundRTA < rightRectangleRightBound && > rightRectangleLefttBound: endIdx is rightRectangleStateIdx
+    //rightBoundRTA > rightRectangleRightBound (to the right): endIdx is rightRectangleStateIdx+1
+    //rightBoundRTA < rightRectangleRightBound (to the left): endIdx is rightRectangleStateIdx-1
 
-    
+    // general note: asymmetry in how splice treats extreme left and right; splicing at an index outside array bounds to the left (-1) will error.
+    // splicing at an index outside array bounds to the right will not error, will behave exactly as .push.
 
-    //left
-    if (leftRectangleColor !== colorRTA) {
-        if (leftBoundRTA === leftRectangleLeftBound) {
-            //max rectangles we could add: 1
-            //min: delete many
-
-        } else if (leftBoundRTA === leftRectangleRightBound) {
-            //max: 1
-            //min: delete many
-        } else if (leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound) {
-            // leftContained = true;
-            //max: 2
-            //min: delete many
-        } else if (leftBoundRTA < leftRectangleLeftBound) {
-            //max: 1
-            //min: delete many
-        } else if (leftBoundRTA > leftRectangleRightBound) {
-            //max: 1
-            //min: delete many
-        }
-    } else {
-        if (leftBoundRTA === leftRectangleLeftBound) {
-
-        } else if (leftBoundRTA === leftRectangleRightBound) {
-
-        } else if (leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound) {
-            leftContained = true;
-
-        } else if (leftBoundRTA < leftRectangleLeftBound) {
-
-        } else if (leftBoundRTA > leftRectangleRightBound) {
-            
-        }
+    if (leftBoundRTA === leftRectangleLeftBound) {
+        spliceStartIdx = leftRectangleStateIdx;
+    } else if (leftBoundRTA === leftRectangleRightBound) {
+        spliceStartIdx = leftRectangleStateIdx+1;
+    } else if (leftBoundRTA > leftRectangleLeftBound && leftBoundRTA < leftRectangleRightBound) {
+        spliceStartIdx = leftRectangleStateIdx + 1;
+        leftRectangle[1] = leftBoundRTA;                    //resize leftRectangle through its right bound
+    } else if (leftBoundRTA < leftRectangleLeftBound) {
+        spliceStartIdx = leftRectangleStateIdx;
+    } else if (leftBoundRTA > leftRectangleLeftBound) {
+        spliceStartIdx = leftRectangleStateIdx + 1;
     }
 
-    //right
-    if (rightRectangleColor !== colorRTA) {
-        if (rightBoundRTA === rightRectangleLeftBound) {
-
-        } else if (rightBoundRTA === rightRectangleRightBound) {
-
-        } else if (rightBoundRTA > rightRectangleLeftBound && rightBoundRTA < rightRectangleRightBound) {
-            rightContained = true;
-
-        } else if (rightBoundRTA < rightRectangleLeftBound) {
-
-        } else if (rightBoundRTA > rightRectangleRightBound) {
-
-        }
-    } else {
-        if (rightBoundRTA === rightRectangleLeftBound) {
-
-        } else if (rightBoundRTA === rightRectangleRightBound) {
-
-        } else if (rightBoundRTA > rightRectangleLeftBound && rightBoundRTA < rightRectangleRightBound) {
-            rightContained = true;
-
-        } else if (rightBoundRTA < rightRectangleLeftBound) {
-
-        } else if (rightBoundRTA > rightRectangleRightBound) {
-            
-        }
+    if (rightBoundRTA === rightRectangleRightBound) {
+        spliceEndIdx = rightRectangleStateIdx;
+    } else if (rightBoundRTA === rightRectangleLeftBound) {
+        spliceEndIdx = rightRectangleStateIdx-1;
+    } else if (rightBoundRTA < rightRectangleRightBound && rightBoundRTA > rightRectangleLeftBound) {
+        spliceEndIdx = rightRectangleStateIdx;
+        rightRectangle[0] = rightBoundRTA;
+    } else if (rightBoundRTA > rightRectangleRightBound) {
+        spliceEndIdx = rightRectangleStateIdx+1;
+    } else if (rightBoundRTA < rightRectangleLeftBound) {
+        spliceEndIdx = rightRectangleStateIdx - 1;
     }
 
+    if (spliceEndIdx === -1) {
+        state.unshift(value);
+        return 0;
+    }
+
+    if (spliceStartIdx === state.length) {
+        state.push(value);
+        return state.length-1;
+    }
+
+    state.splice(spliceStartIdx, spliceEndIdx - spliceStartIdx, value);
+    return spliceStartIdx;
 }
 
 function bsearch(state, leftTarget, rightTarget) {
@@ -223,5 +205,3 @@ function bsearchTarget(state, target) {
 }
 
 
-
-console.log(solve(ranges2));
