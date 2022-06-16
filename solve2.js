@@ -132,8 +132,8 @@ function processBounds(state, leftRectangleStateIdx, rightRectangleStateIdx, lef
     //rightBoundRTA > rightRectangleRightBound (to the right): endIdx is rightRectangleStateIdx+1
     //rightBoundRTA < rightRectangleRightBound (to the left): endIdx is rightRectangleStateIdx-1
 
-    // general note: asymmetry in how splice treats extreme left and right; splicing at an index outside array bounds to the left (-1) will error.
-    // splicing at an index outside array bounds to the right will not error, will behave exactly as .push.
+    // general note: asymmetry in how splice treats extreme left and right; splicing at an index outside array bounds to the left (-1) will wrap.
+    // splicing at an index outside array bounds to the right will behave exactly as .push.
 
     if (leftBoundRTA === leftRectangleLeftBound) {
         spliceStartIdx = leftRectangleStateIdx;
